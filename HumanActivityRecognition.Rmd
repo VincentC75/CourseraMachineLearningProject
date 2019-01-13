@@ -1,0 +1,44 @@
+---
+title: "Practical Machine Learning - Human Activity Recognition from sensor data"
+author: "Vincent"
+date: "13 janvier 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Summary
+
+This report uses data from http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har
+
+## Getting, Reading and cleaning data
+
+The data is available in two files, one for the training set and the other for the testing set.
+```{r}
+if (!file.exists("pml-training.csv")) {download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", destfile = "pml-training.csv")}
+if (!file.exists("pml-testing.csv")) {download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", destfile = "pml-testing.csv")}
+```
+
+```{r}
+train <- read.csv("pml-training.csv")
+```
+
+This data contains a lot of missing values. We could be tempted to keep only records without missing values, but we would loose most of the data.
+
+```{r}
+print(paste(sum(complete.cases(train)), '/', nrow(train)))
+```
+
+Instead, for numerical features we will impute the mean..
+ 
+```{r}
+for(i in 1:ncol(train)) {
+  if (is.numeric(train[,i])) {
+    train[is.na(train[,i]), i] <- mean(train[,i], na.rm = TRUE)
+  }
+}
+print(paste(sum(complete.cases(train)), '/', nrow(train)))
+```
+
