@@ -1,0 +1,108 @@
+---
+title: "Practical Machine Learning - Human Activity Recognition from sensor data"
+author: "Vincent"
+date: "13 janvier 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Summary
+
+This report uses data from http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har
+
+## Getting, Reading and cleaning data
+
+The data is available in two files, one for the training set and the other for the testing set.
+```{r}
+if (!file.exists("pml-training.csv")) {download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", destfile = "pml-training.csv")}
+if (!file.exists("pml-testing.csv")) {download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", destfile = "pml-testing.csv")}
+```
+
+```{r}
+train <- read.csv("pml-training.csv")
+test <- read.csv("pml-testing.csv")
+```
+
+This data contains a lot of missing values. We could be tempted to keep only records without missing values, but we would lose most of the data.
+
+```{r}
+print(paste(sum(complete.cases(train)), '/', nrow(train)))
+```
+
+We could also impute values, using the mean of the column, to fill those missing values. However in theses columns values are missing for the vast majority of the observations, so it makes more sense to remove them altogether.
+
+```{r}
+sum(is.na(train$max_roll_belt)) / nrow(train)
+```
+
+```{r}
+missing <- apply(train, 2, function(col) {sum(is.na(col))})
+train <- train[,missing < 100]
+```
+
+
+We also remove the first seven columns because they do not contain sensor data and should not be used as predictors.
+We transform the columns that have been loaded as factors into numerical values.
+
+```{r}
+train <- train[,8:ncol(train)]
+for(i in 1:ncol(train)) {
+  if (is.factor(train[,i]) & i != ncol(train)) train[, i] <- as.numeric(train[,i])
+}
+test <- test[,8:ncol(train)]
+for(i in 1:ncol(test)) {
+  if (is.factor(test[,i]) & i != ncol(test)) test[, i] <- as.numeric(test[,i])
+}
+```
+
+## 
+
+At this point we could split our train data to reserve a cross validation dataset in order to evaluate our models without using the testing data. However, we will let the caret package do the cross validation for us. We will also enable parallel computation because building the model can be very time comsuming, particularly with random forests.
+
+
+### Enable parallel computation
+```{r}
+library(caret)
+library(parallel)
+library(doParallel)
+cluster <- makeCluster(detectCores() - 1)
+registerDoParallel(cluster)
+fitControl <- trainControl(method = "cv", number = 5, allowParallel = TRUE)
+```
+
+### Random Forest
+```{r randomforest, cache = TRUE}
+start <- proc.time()
+fit_rf <- train(classe ~ ., data = train, method = "rf", trControl = fitControl)
+predictTest <- predict(fit_rf, test)
+predictTest
+proc.time() - start
+```
+
+```{r}
+fit_rf
+#fit_rf$resample
+#confusionMatrix.train(fit_rf)
+```
+
+The Accuracy of the random forest algorithm is excellent, so we do not need to explore other algorithm and we can proceed directly with predition.
+
+
+### Stop parallel computation
+```{r}
+stopCluster(cluster)
+registerDoSEQ()
+```
+
+### Predictions
+
+```{r}
+# apply the same treatment to the final testing data
+```
+
+## Conclusion
+
+The random forest algorithm proved to be very effective on this dataset.
