@@ -39,8 +39,10 @@ sum(is.na(train$max_roll_belt)) / nrow(train)
 ```
 
 ```{r}
-missing <- apply(train, 2, function(col) {sum(is.na(col))})
-train <- train[,missing < 100]
+missingtrain <- apply(train, 2, function(col) {sum(is.na(col))})
+missingtest <- apply(test, 2, function(col) {sum(is.na(col))})
+train <- train[,missingtrain == 0 & missingtest == 0]
+test <- test[,missingtrain == 0 & missingtest == 0]
 ```
 
 
@@ -49,12 +51,12 @@ We transform the columns that have been loaded as factors into numerical values.
 
 ```{r}
 train <- train[,8:ncol(train)]
-for(i in 1:ncol(train)) {
-  if (is.factor(train[,i]) & i != ncol(train)) train[, i] <- as.numeric(train[,i])
+for(i in 1:(ncol(train)-1)) {
+  train[, i] <- as.numeric(train[,i])
 }
-test <- test[,8:ncol(train)]
-for(i in 1:ncol(test)) {
-  if (is.factor(test[,i]) & i != ncol(test)) test[, i] <- as.numeric(test[,i])
+test <- test[,8:ncol(test)]
+for(i in 1:(ncol(test)-1)) {
+  test[, i] <- as.numeric(test[,i])
 }
 ```
 
@@ -84,11 +86,61 @@ proc.time() - start
 
 ```{r}
 fit_rf
-#fit_rf$resample
-#confusionMatrix.train(fit_rf)
+fit_rf$resample
+confusionMatrix.train(fit_rf)
 ```
 
-The Accuracy of the random forest algorithm is excellent, so we do not need to explore other algorithm and we can proceed directly with predition.
+The Accuracy of the random forest algorithm is excellent.
+
+### lda
+```{r lda, cache = TRUE}
+start <- proc.time()
+fit_lda <- train(classe ~ ., data = train, method = "lda", trControl = fitControl)
+predictlda <- predict(fit_lda, test)
+predictlda
+proc.time() - start
+```
+
+```{r}
+fit_lda
+fit_lda$resample
+confusionMatrix.train(fit_lda)
+```
+
+LDA has a much lower accuracy with only 70% compared to more than 99%.
+
+Since Random Forest seems wery well fitted to the problem, we can explore other implemantation of the same algorithm
+
+### Random Forest 2
+```{r randomforest 2, cache = TRUE}
+start <- proc.time()
+fit_rf2 <- train(classe ~ ., data = train, method = "Rborist", trControl = fitControl)
+predictTest2 <- predict(fit_rf2, test)
+predictTest2
+proc.time() - start
+```
+
+```{r}
+fit_rf2
+fit_rf2$resample
+confusionMatrix.train(fit_rf2)
+```
+
+### Random Forest 3
+```{r randomforest 3, cache = TRUE}
+start <- proc.time()
+fit_rf3 <- train(classe ~ ., data = train, method = "ranger", trControl = fitControl)
+1
+predictTest3 <- predict(fit_rf3, test)
+predictTest3
+proc.time() - start
+```
+
+```{r}
+fit_rf3
+fit_rf3$resample
+confusionMatrix.train(fit_rf3)
+```
 
 
 ### Stop parallel computation
