@@ -193,7 +193,7 @@ $(document).ready(function () {
 
 <div id="summary" class="section level2">
 <h2>Summary</h2>
-<p>This report uses data from <a href="http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har" class="uri">http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har</a></p>
+<p>This report uses data from <a href="http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har" class="uri">http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har</a>. This is sensor data from wearable devices and the goal is to predict a class of human behaviour from this sensor data. After loading and cleaning the data we evaluate several models with a 5-fold cross validation, select the models with the best accuracy and combine their predictions with a majority vote to make our final prediction on the test data.</p>
 </div>
 <div id="getting-reading-and-cleaning-data" class="section level2">
 <h2>Getting, Reading and cleaning data</h2>
@@ -227,54 +227,17 @@ for(i in 1:(ncol(test)-1)) {
 <p>At this point we could split our train data to reserve a cross validation dataset in order to evaluate our models without using the testing data. However, we will let the caret package do the cross validation for us. We will also enable parallel computation because building the model can be very time comsuming, particularly with random forests.</p>
 <div id="enable-parallel-computation" class="section level3">
 <h3>Enable parallel computation</h3>
-<pre class="r"><code>library(caret)</code></pre>
-<pre><code>## Loading required package: lattice</code></pre>
-<pre><code>## Loading required package: ggplot2</code></pre>
-<pre class="r"><code>library(parallel)
-library(doParallel)</code></pre>
-<pre><code>## Loading required package: foreach</code></pre>
-<pre><code>## Loading required package: iterators</code></pre>
-<pre class="r"><code>cluster &lt;- makeCluster(detectCores() - 1)
+<pre class="r"><code>library(caret)
+library(parallel)
+library(doParallel)
+cluster &lt;- makeCluster(detectCores() - 1)
 registerDoParallel(cluster)
 fitControl &lt;- trainControl(method = &quot;cv&quot;, number = 5, allowParallel = TRUE)</code></pre>
 </div>
 <div id="random-forest" class="section level3">
 <h3>Random Forest</h3>
-<pre class="r"><code>start &lt;- proc.time()
-fit_rf &lt;- train(classe ~ ., data = train, method = &quot;rf&quot;, trControl = fitControl)
-predictTest &lt;- predict(fit_rf, test)
-predictTest</code></pre>
-<pre><code>##  [1] B A B A A E D B A A B C B A E E A B B B
-## Levels: A B C D E</code></pre>
-<pre class="r"><code>proc.time() - start</code></pre>
-<pre><code>##    user  system elapsed 
-##  87.648   0.353 269.128</code></pre>
-<pre class="r"><code>fit_rf</code></pre>
-<pre><code>## Random Forest 
-## 
-## 19622 samples
-##    52 predictor
-##     5 classes: 'A', 'B', 'C', 'D', 'E' 
-## 
-## No pre-processing
-## Resampling: Cross-Validated (5 fold) 
-## Summary of sample sizes: 15697, 15698, 15697, 15698, 15698 
-## Resampling results across tuning parameters:
-## 
-##   mtry  Accuracy   Kappa    
-##    2    0.9945469  0.9931017
-##   27    0.9945979  0.9931665
-##   52    0.9896033  0.9868466
-## 
-## Accuracy was used to select the optimal model using the largest value.
-## The final value used for the model was mtry = 27.</code></pre>
-<pre class="r"><code>fit_rf$resample</code></pre>
-<pre><code>##    Accuracy     Kappa Resample
-## 1 0.9938854 0.9922659    Fold1
-## 2 0.9946497 0.9932326    Fold3
-## 3 0.9964322 0.9954868    Fold2
-## 4 0.9943935 0.9929077    Fold5
-## 5 0.9936290 0.9919394    Fold4</code></pre>
+<pre class="r"><code>fit_rf &lt;- train(classe ~ ., data = train, method = &quot;rf&quot;, trControl = fitControl)
+predictTest &lt;- predict(fit_rf, test)</code></pre>
 <pre class="r"><code>confusionMatrix.train(fit_rf)</code></pre>
 <pre><code>## Cross-Validated (5 fold) Confusion Matrix 
 ## 
@@ -285,44 +248,16 @@ predictTest</code></pre>
 ##          A 28.4  0.1  0.0  0.0  0.0
 ##          B  0.0 19.2  0.1  0.0  0.0
 ##          C  0.0  0.0 17.3  0.1  0.0
-##          D  0.0  0.0  0.1 16.3  0.0
+##          D  0.0  0.0  0.0 16.3  0.1
 ##          E  0.0  0.0  0.0  0.0 18.3
 ##                             
-##  Accuracy (average) : 0.9946</code></pre>
+##  Accuracy (average) : 0.9947</code></pre>
 <p>The Accuracy of the random forest algorithm is excellent.</p>
 </div>
 <div id="lda" class="section level3">
 <h3>lda</h3>
-<pre class="r"><code>start &lt;- proc.time()
-fit_lda &lt;- train(classe ~ ., data = train, method = &quot;lda&quot;, trControl = fitControl)
-predictlda &lt;- predict(fit_lda, test)
-predictlda</code></pre>
-<pre><code>##  [1] B A B C C E D D A A D A B A E A A B B B
-## Levels: A B C D E</code></pre>
-<pre class="r"><code>proc.time() - start</code></pre>
-<pre><code>##    user  system elapsed 
-##   2.022   0.059   5.280</code></pre>
-<pre class="r"><code>fit_lda</code></pre>
-<pre><code>## Linear Discriminant Analysis 
-## 
-## 19622 samples
-##    52 predictor
-##     5 classes: 'A', 'B', 'C', 'D', 'E' 
-## 
-## No pre-processing
-## Resampling: Cross-Validated (5 fold) 
-## Summary of sample sizes: 15697, 15697, 15699, 15699, 15696 
-## Resampling results:
-## 
-##   Accuracy   Kappa    
-##   0.7013565  0.6221136</code></pre>
-<pre class="r"><code>fit_lda$resample</code></pre>
-<pre><code>##    Accuracy     Kappa Resample
-## 1 0.7072611 0.6297909    Fold1
-## 2 0.6909554 0.6090859    Fold2
-## 3 0.7088963 0.6312721    Fold3
-## 4 0.7007392 0.6215380    Fold4
-## 5 0.6989302 0.6188812    Fold5</code></pre>
+<pre class="r"><code>fit_lda &lt;- train(classe ~ ., data = train, method = &quot;lda&quot;, trControl = fitControl)
+predictlda &lt;- predict(fit_lda, test)</code></pre>
 <pre class="r"><code>confusionMatrix.train(fit_lda)</code></pre>
 <pre><code>## Cross-Validated (5 fold) Confusion Matrix 
 ## 
@@ -330,54 +265,19 @@ predictlda</code></pre>
 ##  
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 23.2  3.0  1.7  1.0  0.7
+##          A 23.2  3.0  1.8  1.0  0.7
 ##          B  0.6 12.3  1.7  0.7  3.1
 ##          C  2.3  2.4 11.4  2.0  1.7
-##          D  2.2  0.7  2.2 12.1  1.8
-##          E  0.1  0.9  0.5  0.6 11.0
+##          D  2.2  0.8  2.1 12.1  1.8
+##          E  0.1  0.9  0.5  0.7 11.1
 ##                             
-##  Accuracy (average) : 0.7014</code></pre>
-<p>LDA has a much lower accuracy with only 70% compared to more than 99%.</p>
-<p>Since Random Forest seems wery well fitted to the problem, we can explore other implemantation of the same algorithm</p>
+##  Accuracy (average) : 0.7008</code></pre>
+<p>LDA has a much lower accuracy with only 70% compared to more than 99% for Random Forest. Since Random Forest seems wery well fitted to the problem, we can explore other implemantation of the same algorithm available in the caret package.</p>
 </div>
 <div id="random-forest-2" class="section level3">
 <h3>Random Forest 2</h3>
-<pre class="r"><code>start &lt;- proc.time()
-fit_rf2 &lt;- train(classe ~ ., data = train, method = &quot;Rborist&quot;, trControl = fitControl)
-predictTest2 &lt;- predict(fit_rf2, test)
-predictTest2</code></pre>
-<pre><code>##  [1] B A B A A E D B A A B C B A E E E B B B
-## Levels: A B C D E</code></pre>
-<pre class="r"><code>proc.time() - start</code></pre>
-<pre><code>##     user   system  elapsed 
-##  122.770    0.506 3471.968</code></pre>
-<pre class="r"><code>fit_rf2</code></pre>
-<pre><code>## Random Forest 
-## 
-## 19622 samples
-##    52 predictor
-##     5 classes: 'A', 'B', 'C', 'D', 'E' 
-## 
-## No pre-processing
-## Resampling: Cross-Validated (5 fold) 
-## Summary of sample sizes: 15698, 15698, 15698, 15696, 15698 
-## Resampling results across tuning parameters:
-## 
-##   predFixed  Accuracy   Kappa    
-##    2         0.9858832  0.9821676
-##   27         0.9860869  0.9824246
-##   52         0.9806846  0.9756080
-## 
-## Tuning parameter 'minNode' was held constant at a value of 2
-## Accuracy was used to select the optimal model using the largest value.
-## The final values used for the model were predFixed = 27 and minNode = 2.</code></pre>
-<pre class="r"><code>fit_rf2$resample</code></pre>
-<pre><code>##    Accuracy     Kappa Resample
-## 1 0.9839450 0.9797228    Fold1
-## 2 0.9870031 0.9835786    Fold3
-## 3 0.9900612 0.9874389    Fold2
-## 4 0.9821611 0.9774725    Fold5
-## 5 0.9872644 0.9839104    Fold4</code></pre>
+<pre class="r"><code>fit_rf2 &lt;- train(classe ~ ., data = train, method = &quot;Rborist&quot;, trControl = fitControl)
+predictTest2 &lt;- predict(fit_rf2, test)</code></pre>
 <pre class="r"><code>confusionMatrix.train(fit_rf2)</code></pre>
 <pre><code>## Cross-Validated (5 fold) Confusion Matrix 
 ## 
@@ -388,55 +288,17 @@ predictTest2</code></pre>
 ##          A 27.5  0.0  0.0  0.0  0.0
 ##          B  0.3 19.2  0.0  0.0  0.0
 ##          C  0.1  0.1 17.3  0.1  0.0
-##          D  0.2  0.0  0.1 16.2  0.0
+##          D  0.2  0.0  0.1 16.3  0.0
 ##          E  0.4  0.0  0.0  0.0 18.3
 ##                             
-##  Accuracy (average) : 0.9861</code></pre>
+##  Accuracy (average) : 0.9872</code></pre>
 </div>
 <div id="random-forest-3" class="section level3">
 <h3>Random Forest 3</h3>
-<pre class="r"><code>start &lt;- proc.time()
-fit_rf3 &lt;- train(classe ~ ., data = train, method = &quot;ranger&quot;, trControl = fitControl)
+<pre class="r"><code>fit_rf3 &lt;- train(classe ~ ., data = train, method = &quot;ranger&quot;, trControl = fitControl)
 1</code></pre>
 <pre><code>## [1] 1</code></pre>
-<pre class="r"><code>predictTest3 &lt;- predict(fit_rf3, test)
-predictTest3</code></pre>
-<pre><code>##  [1] B A B A A E D B A A B C B A E E A B B B
-## Levels: A B C D E</code></pre>
-<pre class="r"><code>proc.time() - start</code></pre>
-<pre><code>##    user  system elapsed 
-##  96.963   0.287 244.870</code></pre>
-<pre class="r"><code>fit_rf3</code></pre>
-<pre><code>## Random Forest 
-## 
-## 19622 samples
-##    52 predictor
-##     5 classes: 'A', 'B', 'C', 'D', 'E' 
-## 
-## No pre-processing
-## Resampling: Cross-Validated (5 fold) 
-## Summary of sample sizes: 15697, 15699, 15696, 15697, 15699 
-## Resampling results across tuning parameters:
-## 
-##   mtry  splitrule   Accuracy   Kappa    
-##    2    gini        0.9945471  0.9931020
-##    2    extratrees  0.9931201  0.9912969
-##   27    gini        0.9946997  0.9932954
-##   27    extratrees  0.9962797  0.9952941
-##   52    gini        0.9885840  0.9855576
-##   52    extratrees  0.9966874  0.9958098
-## 
-## Tuning parameter 'min.node.size' was held constant at a value of 1
-## Accuracy was used to select the optimal model using the largest value.
-## The final values used for the model were mtry = 52, splitrule =
-##  extratrees and min.node.size = 1.</code></pre>
-<pre class="r"><code>fit_rf3$resample</code></pre>
-<pre><code>##    Accuracy     Kappa Resample
-## 1 0.9959236 0.9948434    Fold1
-## 2 0.9969411 0.9961307    Fold2
-## 3 0.9977076 0.9971006    Fold3
-## 4 0.9959236 0.9948437    Fold4
-## 5 0.9969411 0.9961307    Fold5</code></pre>
+<pre class="r"><code>predictTest3 &lt;- predict(fit_rf3, test)</code></pre>
 <pre class="r"><code>confusionMatrix.train(fit_rf3)</code></pre>
 <pre><code>## Cross-Validated (5 fold) Confusion Matrix 
 ## 
@@ -446,11 +308,11 @@ predictTest3</code></pre>
 ## Prediction    A    B    C    D    E
 ##          A 28.4  0.0  0.0  0.0  0.0
 ##          B  0.0 19.3  0.1  0.0  0.0
-##          C  0.0  0.0 17.4  0.1  0.0
-##          D  0.0  0.0  0.0 16.2  0.0
-##          E  0.0  0.0  0.0  0.0 18.4
+##          C  0.0  0.0 17.3  0.1  0.0
+##          D  0.0  0.0  0.0 16.3  0.0
+##          E  0.0  0.0  0.0  0.0 18.3
 ##                             
-##  Accuracy (average) : 0.9967</code></pre>
+##  Accuracy (average) : 0.9966</code></pre>
 </div>
 <div id="stop-parallel-computation" class="section level3">
 <h3>Stop parallel computation</h3>
@@ -459,12 +321,21 @@ registerDoSEQ()</code></pre>
 </div>
 <div id="predictions" class="section level3">
 <h3>Predictions</h3>
-<pre class="r"><code># apply the same treatment to the final testing data</code></pre>
+<p>Each of our 3 Ramdom Forest models has an accuracy of 99%. We will base our final prediction on a majority vote from our 3 Random Forest models and we can expect a near perfect accuracy.</p>
+<pre class="r"><code>predictions &lt;- data.frame(predictTest, predictTest2, predictTest3)
+library(prettyR)
+result &lt;- apply(predictions, 1, Mode)
+names(result) &lt;- 1:20
+result</code></pre>
+<pre><code>##   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18 
+## &quot;B&quot; &quot;A&quot; &quot;B&quot; &quot;A&quot; &quot;A&quot; &quot;E&quot; &quot;D&quot; &quot;B&quot; &quot;A&quot; &quot;A&quot; &quot;B&quot; &quot;C&quot; &quot;B&quot; &quot;A&quot; &quot;E&quot; &quot;E&quot; &quot;A&quot; &quot;B&quot; 
+##  19  20 
+## &quot;B&quot; &quot;B&quot;</code></pre>
 </div>
 </div>
 <div id="conclusion" class="section level2">
 <h2>Conclusion</h2>
-<p>The random forest algorithm proved to be very effective on this dataset.</p>
+<p>The random forest algorithm proved to be very effective on this dataset with an accuracy estimated from a 5-fold cross validation around 99%. By combining the predictions of 3 different implementations of random forests with a majority vote, we aim to improve the global accuracy. This approach led to a 100% accuracy on the test set.</p>
 </div>
 
 

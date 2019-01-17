@@ -11,7 +11,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Summary
 
-This report uses data from http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har
+This report uses data from http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har.
+This is sensor data from wearable devices and the goal is to predict a class of human behaviour from this sensor data.
+After loading and cleaning the data we evaluate several models with a 5-fold cross validation, select the models with the best accuracy and combine their predictions with a majority vote to make our final prediction on the test data.
 
 ## Getting, Reading and cleaning data
 
@@ -66,7 +68,7 @@ At this point we could split our train data to reserve a cross validation datase
 
 
 ### Enable parallel computation
-```{r}
+```{r parallel, message=FALSE}
 library(caret)
 library(parallel)
 library(doParallel)
@@ -77,16 +79,11 @@ fitControl <- trainControl(method = "cv", number = 5, allowParallel = TRUE)
 
 ### Random Forest
 ```{r randomforest, cache = TRUE}
-start <- proc.time()
 fit_rf <- train(classe ~ ., data = train, method = "rf", trControl = fitControl)
 predictTest <- predict(fit_rf, test)
-predictTest
-proc.time() - start
 ```
 
 ```{r}
-fit_rf
-fit_rf$resample
 confusionMatrix.train(fit_rf)
 ```
 
@@ -94,54 +91,36 @@ The Accuracy of the random forest algorithm is excellent.
 
 ### lda
 ```{r lda, cache = TRUE}
-start <- proc.time()
 fit_lda <- train(classe ~ ., data = train, method = "lda", trControl = fitControl)
 predictlda <- predict(fit_lda, test)
-predictlda
-proc.time() - start
 ```
 
 ```{r}
-fit_lda
-fit_lda$resample
 confusionMatrix.train(fit_lda)
 ```
 
-LDA has a much lower accuracy with only 70% compared to more than 99%.
-
-Since Random Forest seems wery well fitted to the problem, we can explore other implemantation of the same algorithm
+LDA has a much lower accuracy with only 70% compared to more than 99% for Random Forest. Since Random Forest seems wery well fitted to the problem, we can explore other implemantation of the same algorithm available in the caret package.
 
 ### Random Forest 2
 ```{r randomforest 2, cache = TRUE}
-start <- proc.time()
 fit_rf2 <- train(classe ~ ., data = train, method = "Rborist", trControl = fitControl)
 predictTest2 <- predict(fit_rf2, test)
-predictTest2
-proc.time() - start
 ```
 
 ```{r}
-fit_rf2
-fit_rf2$resample
 confusionMatrix.train(fit_rf2)
 ```
 
 ### Random Forest 3
 ```{r randomforest 3, cache = TRUE}
-start <- proc.time()
 fit_rf3 <- train(classe ~ ., data = train, method = "ranger", trControl = fitControl)
 1
 predictTest3 <- predict(fit_rf3, test)
-predictTest3
-proc.time() - start
 ```
 
 ```{r}
-fit_rf3
-fit_rf3$resample
 confusionMatrix.train(fit_rf3)
 ```
-
 
 ### Stop parallel computation
 ```{r}
@@ -151,10 +130,15 @@ registerDoSEQ()
 
 ### Predictions
 
+Each of our 3 Ramdom Forest models has an accuracy of 99%. We will base our final prediction on a majority vote from our 3 Random Forest models and we can expect a near perfect accuracy.
 ```{r}
-# apply the same treatment to the final testing data
+predictions <- data.frame(predictTest, predictTest2, predictTest3)
+library(prettyR)
+result <- apply(predictions, 1, Mode)
+names(result) <- 1:20
+result
 ```
 
 ## Conclusion
 
-The random forest algorithm proved to be very effective on this dataset.
+The random forest algorithm proved to be very effective on this dataset with an accuracy estimated from a 5-fold cross validation around 99%. By combining the predictions of 3 different implementations of random forests with a majority vote, we aim to improve the global accuracy. This approach led to a 100% accuracy on the test set.
